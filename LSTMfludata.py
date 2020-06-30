@@ -1,7 +1,11 @@
 import torch
 from sklearn.preprocessing import MinMaxScaler
-import SIRfludata
-exec(compile(open("SIRfludata.py", "rb").read(), "SIRfludata.py", 'exec'))
+import matplotlib.pyplot as plt
+import numpy as np
+import fludata
+
+exec(compile(open("fludata.py", "rb").read(), "fludata.py", 'exec'))
+#exec(compile(open("SIRfludata.py", "rb").read(), "SIRfludata.py", 'exec'))
 
 scaler = MinMaxScaler(feature_range=(-1, 1))
 maxval = seasons[0:-1].max()
@@ -78,3 +82,48 @@ plt.title('Loss Over Time')
 plt.legend(['Training Loss'])
 plt.show()
 print("Epoch with minimum loss: ",np.argmin(lossperepoch))
+
+fut_pred = 52
+
+test_inputs = train_data.tolist()
+predictions=[]
+model.eval()
+
+for i in range(fut_pred):
+    seq = torch.FloatTensor(test_inputs[-train_window:])
+    with torch.no_grad():
+        model.hidden = (torch.zeros(1, 1, model.hidden_layer_size),
+                        torch.zeros(1, 1, model.hidden_layer_size))
+        pred=model(seq).item()
+        test_inputs.append(pred)
+        predictions.append(pred)
+actual_predictions = np.array(predictions)
+
+unscaled = scaler.inverse_transform(actual_predictions.reshape(-1, 1))
+
+fig=plt.figure(figsize=(15, 10), dpi= 80, facecolor='w', edgecolor='k')
+y_pos = np.arange(len(weeks))
+plt.xticks(y_pos, weeks)
+plt.plot(seasons[-1], label='real data', linewidth=3, color='black')
+plt.plot(unscaled, label='LSTM predictions',linewidth = 3, color='orange')
+plt.legend(prop={'size': 20})
+plt.yticks(fontsize=14)
+plt.title("LSTM Predictions",fontsize=30)
+plt.xlabel("Weeks",fontsize=30)
+plt.ylabel("Number of New Cases",fontsize=30)
+plt.show()
+
+#fig=plt.figure(figsize=(15, 10), dpi= 80, facecolor='w', edgecolor='k')
+#y_pos = np.arange(len(weeks))
+#plt.xticks(y_pos, weeks)
+#plt.plot(seasons[-1], label='real data',linewidth =3, color='black')
+#plt.plot(unscaled, label='LSTM predictions',linewidth =3,color='orange')
+#plt.plot(I, label="Previous Season fit SIR", linestyle='-',linewidth =3, color='blue')
+#plt.plot(I2, label="Smart 10wks SIR", linestyle='-.', linewidth =3, color='aqua')
+#plt.plot(I3, label="Naive 10wks SIR", linestyle='--',linewidth =3, color='navy')
+#plt.legend(prop={'size': 20})
+#plt.yticks(fontsize=14)
+#plt.title("Comparing LSTM and SIR Predictions",fontsize=30)
+#plt.xlabel("Weeks",fontsize=30)
+#plt.ylabel("Number of New Cases",fontsize=30)
+#plt.show()
